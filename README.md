@@ -258,11 +258,11 @@ returns all NewsItems that are descendants of the current node where the Summary
 
 Supported operators include :
 + eq : =
++ ne : !=
 + ge : >=
 + gt : >
 + le : <=
 + lt : <
-+ ne : !=
 
 - **select** : 
 ```http
