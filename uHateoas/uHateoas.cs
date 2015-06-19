@@ -651,7 +651,7 @@ namespace wg2k.umbraco
             object val = prop.Value;
             PublishedPropertyType pubPropType = node.ContentType.GetPropertyType(prop.PropertyTypeAlias);
             string PropertyEditorAlias = pubPropType.PropertyEditorAlias;
-            string propName = prop.PropertyTypeAlias.Substring(0, 1).ToUpper() + prop.PropertyTypeAlias.Substring(1);
+            string propName = prop.PropertyTypeAlias; // prop.PropertyTypeAlias.Substring(0, 1).ToUpper() + prop.PropertyTypeAlias.Substring(1);
             string propTitle = Regex.Replace(propName, "(\\B[A-Z])", " $1");
             if (val != null)
             {
@@ -805,7 +805,7 @@ namespace wg2k.umbraco
             {
                 foreach (string key in context.Request["resolveMedia"].ToString().Split(','))
                 {
-                    if (name == key)
+                    if (name.ToLower() == key.ToLower())
                     {
                         string url = string.Empty;
                         try
@@ -1098,10 +1098,11 @@ namespace wg2k.umbraco
                     {
                         try
                         {
-                            foreach (string subKey in properties[key].ToString().Split(','))
+                            if (((dynamic)(properties[key])).type == "number")
                             {
-                                if (subKey.IsNumeric() && subKey != currentPageId.ToString() && key != "Path")
-                                    entities.Add(Simplify(umbHelper.TypedContent(subKey)));
+                                int nodeid = ((dynamic)(properties[key])).value;
+                                if (nodeid != currentPageId && key != "Path")
+                                    entities.Add(Simplify(umbHelper.TypedContent(nodeid)));
                             }
                         }
                         catch (Exception ex)
