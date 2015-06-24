@@ -195,12 +195,7 @@ namespace wg2k.umbraco
             }
             catch (Exception ex)
             {
-                data.Add("Process Error", ex.Message);
-                data.Add("StackTrace", ex.StackTrace);
-                foreach (string key in ex.Data.Keys)
-                {
-                    data.Add(key, ex.Data[key].ToString());
-                }
+                throw new Exception("Process Error " + ex.Message);
             }
             return data;
         }
@@ -235,14 +230,7 @@ namespace wg2k.umbraco
             }
             catch (Exception ex)
             {
-                Dictionary<string, object> error = new Dictionary<string, object>();
-                error.Add("ProcessRequest Error", ex.Message);
-                error.Add("StackTrace", ex.StackTrace);
-                foreach (string key in ex.Data.Keys)
-                {
-                    error.Add(key, ex.Data[key].ToString());
-                }
-                return error;
+                throw new Exception("ProcessRequest Error " + ex.Message);
             }
         }
         private Dictionary<string, object> Simplify(IPublishedContent node)
@@ -347,14 +335,7 @@ namespace wg2k.umbraco
             }
             catch (Exception ex)
             {
-                Dictionary<string, object> error = new Dictionary<string, object>();
-                error.Add("Simplify Error", ex.Message);
-                error.Add("StackTrace", ex.StackTrace);
-                foreach (string key in ex.Data.Keys)
-                {
-                    error.Add(key, ex.Data[key].ToString());
-                }
-                return error;
+                throw new Exception("Simplify Error " + ex.Message);
             }
         }
         private Dictionary<string, object> BuildForm(IPublishedContent model, string docTypeAlias)
@@ -376,14 +357,7 @@ namespace wg2k.umbraco
             }
             catch (Exception ex)
             {
-                Dictionary<string, object> error = new Dictionary<string, object>();
-                error.Add("Error", ex.Message);
-                error.Add("StackTrace", ex.StackTrace);
-                foreach (string key in ex.Data.Keys)
-                {
-                    error.Add(key, ex.Data[key].ToString());
-                }
-                return error;
+                throw new Exception("BuildForm Error " + ex.Message);
             }
         }
         private Dictionary<string, object> ProcessForm(IPublishedContent model)
@@ -403,13 +377,13 @@ namespace wg2k.umbraco
                 switch (action)
                 {
                     case "create":
-                        node = CreateNode(model, doctype, publish);
+                        node = ProcessRequest(CreateNode(model, doctype, publish));
                         break;
                     case "update":
-                        node = UpdateNode(model, doctype, publish);
+                        node = ProcessRequest(UpdateNode(model, doctype, publish));
                         break;
                     case "remove":
-                        node = RemoveNode(model, doctype, delete);
+                        node = ProcessRequest(RemoveNode(model, doctype, delete));
                         break;
                     default:
                         throw new Exception(action + " is an invalid action");
@@ -417,18 +391,13 @@ namespace wg2k.umbraco
             }
             catch (Exception ex)
             {
-                node.Add("Process Form Error", ex.Message);
-                node.Add("StackTrace", ex.StackTrace);
-                foreach (string key in ex.Data.Keys)
-                {
-                    node.Add(key, ex.Data[key].ToString());
-                }
+               throw new Exception("Process Form Error " + ex.Message);
             }
             return node;
         }
-        private Dictionary<string, object> RemoveNode(IPublishedContent model, string docType, bool delete)
+        private IPublishedContent RemoveNode(IPublishedContent model, string docType, bool delete)
         {
-            Dictionary<string, object> node = new Dictionary<string, object>();
+            IPublishedContent node;
             try
             {
                 IContent deleteNode = contentService.GetById(model.Id);
@@ -438,22 +407,17 @@ namespace wg2k.umbraco
                     contentService.Delete(deleteNode, currentUser.Id);
                 else
                     contentService.UnPublish(deleteNode, currentUser.Id);
-                node = Simplify(umbHelper.TypedContent(deleteNode.ParentId));
+                node = umbHelper.TypedContent(deleteNode.ParentId);
             }
             catch (Exception ex)
             {
-                node.Add("RemoveNode Error", ex.Message);
-                node.Add("StackTrace", ex.StackTrace);
-                foreach (string key in ex.Data.Keys)
-                {
-                    node.Add(key, ex.Data[key].ToString());
-                }
+                throw new Exception("RemoveNode Error " + ex.Message);
             }
             return node;
         }
-        private Dictionary<string, object> UpdateNode(IPublishedContent model, string docType, bool publish)
+        private IPublishedContent UpdateNode(IPublishedContent model, string docType, bool publish)
         {
-            Dictionary<string, object> node = new Dictionary<string, object>();
+            IPublishedContent node ;
             try
             {
                 string json = GetPostedJSON();
@@ -477,28 +441,23 @@ namespace wg2k.umbraco
                 if (publish)
                 {
                     Attempt<PublishStatus> result = contentService.SaveAndPublishWithStatus(updateNode, currentUser.Id);
-                    node = Simplify(umbHelper.TypedContent(result.Result.ContentItem.Id));
+                    node = umbHelper.TypedContent(result.Result.ContentItem.Id);
                 }
                 else
                 {
                     contentService.Save(updateNode, currentUser.Id);
-                    node = Simplify(umbHelper.TypedContent(updateNode.Id));
+                    node =umbHelper.TypedContent(updateNode.Id);
                 }
             }
             catch (Exception ex)
             {
-                node.Add("UpdateNode Error", ex.Message);
-                node.Add("StackTrace", ex.StackTrace);
-                foreach (string key in ex.Data.Keys)
-                {
-                    node.Add(key, ex.Data[key].ToString());
-                }
+                throw new Exception("UpdateNode Error " + ex.Message);
             }
             return node;
         }
-        private Dictionary<string, object> CreateNode(IPublishedContent model, string docType, bool publish)
+        private IPublishedContent CreateNode(IPublishedContent model, string docType, bool publish)
         {
-            Dictionary<string, object> node = new Dictionary<string, object>();
+            IPublishedContent node;
             try
             {
                 string json = GetPostedJSON();
@@ -525,22 +484,17 @@ namespace wg2k.umbraco
                 if (publish)
                 {
                     Attempt<PublishStatus> result = contentService.SaveAndPublishWithStatus(newNode, currentUser.Id);
-                    node = Simplify(umbHelper.TypedContent(result.Result.ContentItem.Id));
+                    node = umbHelper.TypedContent(result.Result.ContentItem.Id);
                 }
                 else
                 {
                     contentService.Save(newNode, currentUser.Id);
-                    node = Simplify(umbHelper.TypedContent(newNode.Id));
+                    node = model;
                 }
             }
             catch (Exception ex)
             {
-                node.Add("CreateNode Error", ex.Message);
-                node.Add("StackTrace", ex.StackTrace);
-                foreach (string key in ex.Data.Keys)
-                {
-                    node.Add(key, ex.Data[key].ToString());
-                }
+                throw new Exception("CreateNode Error " + ex.Message);
             }
             return node;
         }
@@ -614,14 +568,7 @@ namespace wg2k.umbraco
             }
             catch (Exception ex)
             {
-                Dictionary<string, object> error = new Dictionary<string, object>();
-                error.Add("GenerateForm Error", ex.Message);
-                error.Add("StackTrace", ex.StackTrace);
-                foreach (string key in ex.Data.Keys)
-                {
-                    error.Add(key, ex.Data[key].ToString());
-                }
-                return error;
+                throw new Exception("GenerateForm Error " + ex.Message);
             }
         }        
         private KeyValuePair<string, object> SimplyfyProperty(PropertyInfo prop, IPublishedContent node)
@@ -1032,7 +979,7 @@ namespace wg2k.umbraco
                                 action.Add("class", classes.ToArray());
                                 action.Add("title", "Save @content".SmartReplace(new { content = ct.Name }));
                                 action.Add("method", "POST");
-                                action.Add("action", GetHateoasHref(node, new { action = "create", doctype = ct.Alias, publish = "false" }));
+                                action.Add("action", GetHateoasHref(node, new { action = "create", doctype = ct.Alias, publish = "true" }));
                                 action.Add("type", context.Request.ContentType);
                                 actions.Add(action);
                             }
@@ -1052,7 +999,7 @@ namespace wg2k.umbraco
                     action.Add("class", classes.ToArray());
                     action.Add("title", "Update @content".SmartReplace(new { content = ct.Name }));
                     action.Add("method", "POST");
-                    action.Add("action", GetHateoasHref(node, new { action = "update", doctype = ct.Alias, publish = "false" }));
+                    action.Add("action", GetHateoasHref(node, new { action = "update", doctype = ct.Alias, publish = "true" }));
                     action.Add("type", context.Request.ContentType);
                     actions.Add(action);
                 }
