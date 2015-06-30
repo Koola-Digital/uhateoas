@@ -295,7 +295,7 @@ http://www.mysite.com/anypath?descendants=NewsItem&where=Summary.Contains('News 
 ```
 #Editing Umbraco
 
-The **POST , PUT, PATCH** and **DELETE** verbs allow you to do Create Update and Delete operations using IContent via the Content Service when logged in as an Umbraco Back-Office User.
+The **POST, PUT, PATCH** and **DELETE** verbs allow you to do Create Update and Delete operations using IContent via the Content Service when logged in as an Umbraco Back-Office User.
 
 The API exposes Actions based on the permissions of the logged-in Umbraco User. **Please Note** : **PUT, PATCH** and **DELETE** verb support has only been enabled in **version 1.3.2**.
 
