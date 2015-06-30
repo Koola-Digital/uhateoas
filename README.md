@@ -293,4 +293,12 @@ Of course they can all be used together to create really useful data retrieval s
 ```http
 http://www.mysite.com/anypath?descendants=NewsItem&where=Summary.Contains('News Flash')&resolvemedia=PageImage,NewsImage&skip=8&take=4
 ```
+#Editing Umbraco
 
+The **POST , PUT, PATCH** and **DELETE** verbs allow you to do Create Update and Delete operations using IContent via the Content Service when logged in as an Umbraco Back-Office User.
+
+The API exposes Actions based on the permissions of the logged-in Umbraco User. **Please Note** : **PUT, PATCH** and **DELETE** verb support has only been enabled in **version 1.3.2**.
+
+The actions Create, Update and Delete are exposed as a collection of actions based on the User's admin rights and the DocumentTypes that are allowed under the current node. With the Umbraco Hypermedia API, you are able to create complex Single Page Applications without writing a single line of server-side code. It turns any Umbraco v7+ website into a REST based data repository with a very capable, query-able Hypermedia API!
+
+We are working on a build where you will be able to map Umbraco Member roles to Umbraco Users as well as mapping anonymous visitors to an anonymous Umbraco User to facilitate creation of nodes for use cases like ContactUs, Comment etc where we would like to enable visitors that are not logged in to be able to use the POST and PATCH verbs in a controlled manner. 
