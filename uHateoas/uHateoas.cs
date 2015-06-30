@@ -186,10 +186,8 @@ namespace wg2k.umbraco
                         }
                     }
                 }
-                if (context.Request.HttpMethod == "POST")
+                else
                 {
-                    if (!canCreate && !canUpdate && !canDelete)
-                        throw new Exception("Access Denied");
                     data = ProcessForm(model);
                 }
             }
@@ -367,22 +365,31 @@ namespace wg2k.umbraco
             {
                 if (context.Request.QueryString["doctype"] == null)
                     throw new Exception("No doctype supplied");
-                if (context.Request.QueryString["action"] == null)
-                    throw new Exception("No action supplied, i.e. create, udate or remove");
                 string doctype = context.Request.QueryString["doctype"].ToString();
-                string action = context.Request.QueryString["action"].ToString();
+                string action = context.Request.HttpMethod.ToUpper();
                 bool delete = context.Request.QueryString["delete"] == null ? false : context.Request.QueryString["delete"].ToString().ToLower() == "true";
                 bool publish = context.Request.QueryString["publish"] == null ? false : context.Request.QueryString["publish"].ToString().ToLower() == "true";
                 contentService = ApplicationContext.Current.Services.ContentService;
                 switch (action)
                 {
-                    case "create":
+                    case "POST":
+                        if (!canCreate)
+                            throw new Exception(action + " Access Denied");
                         node = ProcessRequest(CreateNode(model, doctype, publish));
                         break;
-                    case "update":
+                    case "PUT":
+                        if (!canUpdate)
+                            throw new Exception(action + " Access Denied");
                         node = ProcessRequest(UpdateNode(model, doctype, publish));
                         break;
-                    case "remove":
+                    case "PATCH":
+                        if (!canUpdate)
+                            throw new Exception(action + " Access Denied");
+                        node = ProcessRequest(UpdateNode(model, doctype, publish));
+                        break;
+                    case "DELETE":
+                        if (!canDelete)
+                            throw new Exception(action + " Access Denied");
                         node = ProcessRequest(RemoveNode(model, doctype, delete));
                         break;
                     default:
@@ -425,6 +432,12 @@ namespace wg2k.umbraco
                 IContent updateNode = contentService.GetById(model.Id);
                 if (updateNode == null)
                     throw new Exception("Node is null");
+                if (form.ContainsKey("Name"))
+                    updateNode.Name = form["Name"].ToString();
+                if (form.ContainsKey("ExpireDate"))
+                    updateNode.ExpireDate = (DateTime)form["ExpireDate"];
+                if (form.ContainsKey("ReleaseDate"))
+                    updateNode.ReleaseDate = (DateTime)form["ReleaseDate"];
                 foreach (Property prop in updateNode.Properties)
                 {
                     try
@@ -462,12 +475,16 @@ namespace wg2k.umbraco
             {
                 string json = GetPostedJSON();
                 Dictionary<string, object> form = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
-                if (form == null || (form != null && form["Name"] == null))
+                if (form == null || (form != null && form.ContainsKey("Name") == false))
                     throw new Exception("Name form element is required");
                 IContent parentNode = contentService.GetById(model.Id);
                 IContent newNode = contentService.CreateContent(form["Name"].ToString(), parentNode, docType, currentUser.Id);
                 if (newNode == null)
                     throw new Exception("New Node is null");
+                if (form.ContainsKey("ExpireDate"))
+                    newNode.ExpireDate = (DateTime)form["ExpireDate"];
+                if (form.ContainsKey("ReleaseDate"))
+                    newNode.ReleaseDate = (DateTime)form["ReleaseDate"];
                 foreach (Property prop in newNode.Properties)
                 {
                     try
@@ -521,7 +538,9 @@ namespace wg2k.umbraco
                             AddContentTypeProperties(doc, properties, dataTypeService, null);
                         }
                         properties.Add("Name", new { description = "Name for the Node", group = "Properties", manditory = true, propertyEditor = "Umbraco.Textbox", title = "Name", type = "text", validation = "([^\\s]*)", value = "" });
-                        links.Add(new { rel = new string[] { "_Parent", node.DocumentTypeAlias }, title = node.Name, href = GetHateoasHref(node, null) });
+                        properties.Add("ExpiryDate", new { description = "Date for the Node to be Unpublished", group = "Properties", manditory = false, propertyEditor = "date", title = "Expriry Date", type = "text", validation = "", value = "" });
+                        properties.Add("ReleaseDate", new { description = "Date for the Node to be Published", group = "Properties", manditory = false, propertyEditor = "date", title = "Release Date", type = "text", validation = "", value = "" });
+
                     }
                 }
                 if (context.Request["action"].ToString() == "update")
@@ -537,8 +556,9 @@ namespace wg2k.umbraco
                             AddContentTypeProperties(doc, properties, dataTypeService, node);
                         }
                         properties.Add("Name", new { description = "Name for the Node", group = "Properties", manditory = true, propertyEditor = "Umbraco.Textbox", title = "Name", type = "text", validation = "([^\\s]*)", value = node.Name });
-                        links.Add(new { rel = new string[] { "_Parent", node.Parent.DocumentTypeAlias }, title = node.Parent.Name, href = GetHateoasHref(node.Parent, null) });
-                        links.Add(new { rel = new string[] { "_Self", node.DocumentTypeAlias }, title = node.Name, href = GetHateoasHref(node, null) });
+                        properties.Add("ExpiryDate", new { description = "Date for the Node to be Unpublished", group = "Properties", manditory = false, propertyEditor = "date", title = "Expiry Date", type = "text", validation = "", value= "" });
+                        properties.Add("ReleaseDate", new { description = "Date for the Node to be Published", group = "Properties", manditory = false, propertyEditor = "date", title = "Release Date", type = "text", validation = "", value = "" });
+
                     }
                 }
                 if (context.Request["action"].ToString() == "remove")
@@ -554,15 +574,12 @@ namespace wg2k.umbraco
                             AddContentTypeProperties(doc, properties, dataTypeService, node);
                         }
                         properties.Add("Name", new { description = "Name for the Node", group = "Properties", manditory = true, propertyEditor = "Umbraco.Textbox", title = "Name", type = "text", validation = "([^\\s]*)", value = node.Name });
-                        links.Add(new { rel = new string[] { "_Parent", node.Parent.DocumentTypeAlias }, title = node.Parent.Name, href = GetHateoasHref(node.Parent, null) });
-                        links.Add(new { rel = new string[] { "_Self", node.DocumentTypeAlias }, title = node.Name, href = GetHateoasHref(node, null) });
                     }
                 }
                 classes.Add("x-form");
                 classes.Add(docTypeAlias);
                 Properties.Add("class", classes.ToArray());
                 Properties.Add("title", title);
-                //Properties.Add("links", links);
                 Properties.Add("properties", properties);
                 return Properties;
             }
@@ -979,7 +996,7 @@ namespace wg2k.umbraco
                                 action.Add("class", classes.ToArray());
                                 action.Add("title", "Save @content".SmartReplace(new { content = ct.Name }));
                                 action.Add("method", "POST");
-                                action.Add("action", GetHateoasHref(node, new { action = "create", doctype = ct.Alias, publish = "true" }));
+                                action.Add("action", GetHateoasHref(node, new { doctype = ct.Alias, publish = "true" }));
                                 action.Add("type", context.Request.ContentType);
                                 actions.Add(action);
                             }
@@ -998,8 +1015,8 @@ namespace wg2k.umbraco
                     classes.Add("x-form");
                     action.Add("class", classes.ToArray());
                     action.Add("title", "Update @content".SmartReplace(new { content = ct.Name }));
-                    action.Add("method", "POST");
-                    action.Add("action", GetHateoasHref(node, new { action = "update", doctype = ct.Alias, publish = "true" }));
+                    action.Add("method", "PUT");
+                    action.Add("action", GetHateoasHref(node, new { doctype = ct.Alias, publish = "true" }));
                     action.Add("type", context.Request.ContentType);
                     actions.Add(action);
                 }
@@ -1015,8 +1032,8 @@ namespace wg2k.umbraco
                     classes.Add("x-form");
                     action.Add("class", classes.ToArray());
                     action.Add("title", "Remove @content".SmartReplace(new { content = ct.Name }));
-                    action.Add("method", "POST");
-                    action.Add("action", GetHateoasHref(node, new { action = "remove", doctype = ct.Alias, delete = "false" }));
+                    action.Add("method", "DELETE");
+                    action.Add("action", GetHateoasHref(node, new { doctype = ct.Alias, delete = "false" }));
                     action.Add("type", context.Request.ContentType);
                     actions.Add(action);
                 }
