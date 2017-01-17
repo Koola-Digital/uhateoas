@@ -1062,11 +1062,22 @@ namespace wg2k.umbraco
                     {
                         try
                         {
-                            if (((dynamic)(properties[key])).type == "number")
+                            if (((dynamic)(properties[key])).GetType() == typeof(Int32))
                             {
-                                int nodeid = ((dynamic)(properties[key])).value;
+                                int nodeid = (Int32) properties[key];
                                 if (nodeid != currentPageId && key != "Path")
-                                    entities.Add(Simplify(umbHelper.TypedContent(nodeid)));
+                                    properties[key] = Simplify(umbHelper.TypedContent(nodeid));
+                            }
+                            else if ((dynamic)(properties[key]).GetType() == typeof(string))
+                            {
+                                List<object> content = new List<object>();
+                                foreach (string node in ((string)(properties[key])).Split(','))
+                                {
+                                    int nodeid = int.Parse(node);
+                                    if (nodeid != currentPageId && key != "Path")
+                                        content.Add(Simplify(umbHelper.TypedContent(nodeid)));
+                                }
+                                properties[key] = content;
                             }
                         }
                         catch (Exception ex)
