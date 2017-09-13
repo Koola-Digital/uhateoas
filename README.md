@@ -8,8 +8,7 @@ A **REST** client needs no prior knowledge about how to interact with any partic
 
 **UHATEOAS** is **HATEOAS** for **Umbraco**
 
-Check out the [uHateoas Project Site] 
-[uHateoas Project Site]: http://uhateoas.wg2k.com
+Check out the uHateoas Project Site: http://uhateoas.league.co.za
 
 We all love and use Umbraco to build our websites, web applications and mobile applications.
 
