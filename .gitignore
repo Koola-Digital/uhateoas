@@ -154,3 +154,13 @@ $RECYCLE.BIN/
 
 # Mac desktop service store files
 .DS_Store
+/packages/*
+/uHateoas/App_Data/*
+/uHateoas/Web.config
+/uHateoas/Umbraco/*
+/uHateoas/Umbraco_Client/*
+/uHateoas/config/*
+/uHateoas/App_Browsers/*
+/uHateoas/App_Plugins/*
+/uHateoas/Views/*
+/.vs/uHateoas/v15/*
