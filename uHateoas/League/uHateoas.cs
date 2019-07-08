@@ -12,6 +12,7 @@ using System.Web.Mvc;
 using System.Web.Security;
 using System.Xml;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Umbraco.Core;
 using Umbraco.Core.Cache;
 using Umbraco.Core.Dynamics;
@@ -475,25 +476,62 @@ namespace uHateoas.League
                     }
                 }
 
+                var useAllProperties = false;
+                var propertyNames = new List<string>();
+                if (!string.IsNullOrEmpty(RequestSelect))
+                {
+                    propertyNames = RequestSelect.ToLower().Split(',').ToList();
+                }
+
+                else
+                    useAllProperties = true;
+
                 foreach (IPublishedProperty pal in node.Properties)
                 {
                     if (pal != null)
                     {
-                        var prop = SimplyfyProperty(pal, node);
-                        properties.Add(prop.Key, prop.Value);
+                        if (useAllProperties || propertyNames.Contains(pal.PropertyTypeAlias.ToLower()))
+                        {
+                            var prop = SimplyfyProperty(pal, node);
+                            properties.Add(prop.Key, prop.Value);
+                        }
                     }
                 }
 
-                if (!string.IsNullOrEmpty(RequestSelect))
+                //foreach (IPublishedProperty pal in node.Properties)
+                //{
+                //    if (pal != null)
+                //    {
+                //        var prop = SimplyfyProperty(pal, node);
+                //        //properties.Add(prop.Key, prop.Value);
+                //    }
+                //}
+
+                if (propertyNames.Any())
                 {
                     var properties1 = properties;
                     var selectedProperties = new SortedDictionary<string, object>();
 
-                    properties.Where(p => RequestSelect.ToLower().Split(',').Contains(p.Key.ToLower())).
-                        ForEach(a => selectedProperties.Add(a.Key, properties1[a.Key]));
+                    foreach (var a in properties.Where(p => propertyNames.Contains(p.Key.ToLower())))
+                    {
+                        selectedProperties.Add(a.Key, properties1[a.Key]);
+                    }
 
                     properties = selectedProperties;
                 }
+
+                //if (!string.IsNullOrEmpty(RequestSelect))
+                //{
+                //    var properties1 = properties;
+                //    var selectedProperties = new SortedDictionary<string, object>();
+
+                //    foreach (var a in properties.Where(p => RequestSelect.ToLower().Split(',').Contains(p.Key.ToLower())))
+                //    {
+                //        selectedProperties.Add(a.Key, properties1[a.Key]);
+                //    }
+
+                //    properties = selectedProperties;
+                //}
 
                 // resolve any nested content nodes specified by the resolveContent switch
                 ResolveContent(properties);
@@ -969,8 +1007,62 @@ namespace uHateoas.League
                 if (propertyEditorAlias == "Umbraco.MultipleTextstring")
                 {
                     //val = (string[])prop.Value;
+                    val = JsonConvert.SerializeObject(prop.Value as string[]);
                 }
 
+                if (propertyEditorAlias == "Umbraco.NestedContent")
+                {
+                    var useAllProperties = false;
+                    var propertyNames = new List<string>();
+                    if (!string.IsNullOrEmpty(RequestSelect))
+                    {
+                        propertyNames = RequestSelect.ToLower().Split(',').ToList();
+                    }
+
+                    else
+                        useAllProperties = true;
+
+                    val = val == null ? null : prop.DataValue;
+                    if (val != null)
+                    {
+                        var v = ((JArray)(JToken)JsonConvert.DeserializeObject(val.ToString())).Children();
+                        //var v = JsonConvert.DeserializeObject(val.ToString());
+
+                        foreach (JProperty x in v.Children())
+                        {
+                            if((useAllProperties || propertyNames.Contains(x.Name.ToLower())) && (!(x.First() is JArray)))
+                            {
+                                var item = x.First().ToString();
+                                if (item.IndexOf("umb://document", StringComparison.CurrentCultureIgnoreCase) >= 0)
+                                {
+                                    var udi = Udi.Parse(item);
+                                    var content = UmbHelper.TypedContent(udi);
+                                    if(content != null)
+                                    {
+                                        x.First().Replace(JToken.FromObject(Simplify(content)));
+                                    }
+                                    
+                                    //x.First().Replace(content?.Name);
+                                }
+                            }
+                            
+                            //foreach (var z in item)
+                            //{
+                            //    var s = z.Value<string>();
+
+                            //    if (s.IndexOf("umb", StringComparison.CurrentCultureIgnoreCase) >= 0)
+                            //    {
+                            //        var udi = Udi.Parse(s);
+                            //        var content = UmbHelper.TypedContent(udi);
+                            //        z.Replace(content?.Name);
+                            //    }
+                            //}
+                            
+                        }
+
+                        val = v;
+                    }
+                }
 
                 if (propertyEditorAlias == "Umbraco.Grid")
                 {
@@ -1096,6 +1188,9 @@ namespace uHateoas.League
                     case "createdate":
                         sortedData = data.OrderByDescending(x => x.CreateDate);
                         break;
+                    case "sortorder":
+                        sortedData = data.OrderByDescending(x => x.SortOrder);
+                        break;
 
                     default:
                         sortedData = data.OrderBy(x => x.GetProperty(RequestOrderBy).PropertyTypeAlias.IndexOf("date", StringComparison.OrdinalIgnoreCase) >= 0 ?
@@ -1117,6 +1212,10 @@ namespace uHateoas.League
 
                     case "createdate":
                         sortedData = data.OrderBy(x => x.CreateDate);
+                        break;
+
+                    case "sortorder":
+                        sortedData = data.OrderBy(x => x.SortOrder);
                         break;
 
                     default:
