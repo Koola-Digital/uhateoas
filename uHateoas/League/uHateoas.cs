@@ -371,12 +371,12 @@ namespace uHateoas.League
             }
         }
 
-        private Dictionary<string, object> Simplify(IPublishedContent node)
+        private Dictionary<string, object> Simplify(IPublishedContent node, bool showClass = false)
         {
-            return Simplify(node, false, new List<object>(), new List<object>());
+            return Simplify(node, false, new List<object>(), new List<object>(), showClass);
         }
 
-        private Dictionary<string, object> Simplify(IPublishedContent node, bool isRoot, List<object> entities, List<object> actions)
+        private Dictionary<string, object> Simplify(IPublishedContent node, bool isRoot, List<object> entities, List<object> actions, bool showClass = false)
         {
             try
             {
@@ -459,18 +459,22 @@ namespace uHateoas.League
                             {
                                 classes.Add("Children");
                             }
+                            if (showClass) {
+                                if (SimpleJson)
+                                    returnProperties.Add("class", string.Join(",", classes.ToArray()));
+                                else
+                                    returnProperties.Add("class", classes.ToArray());
 
-                            if (SimpleJson)
-                                returnProperties.Add("class", string.Join(",", classes.ToArray()));
-                            else
-                                returnProperties.Add("class", classes.ToArray());
-
-                            returnProperties.Add("title", node.Name);
-                            goto default;
-
-                        default:
+                                returnProperties.Add("title", node.Name);
+                            }
+                            //goto default;
                             var prop = SimplyfyProperty(pi, node);
                             properties.Add(prop.Key, prop.Value);
+                            break;
+
+                        default:
+                            var prop1 = SimplyfyProperty(pi, node);
+                            properties.Add(prop1.Key, prop1.Value);
                             break;
 
                     }
@@ -1026,41 +1030,35 @@ namespace uHateoas.League
                     if (val != null)
                     {
                         var v = ((JArray)(JToken)JsonConvert.DeserializeObject(val.ToString())).Children();
-                        //var v = JsonConvert.DeserializeObject(val.ToString());
-
+                        
+                        Dictionary<string, object> newprops = new Dictionary<string, object>();
                         foreach (JProperty x in v.Children())
                         {
-                            if((useAllProperties || propertyNames.Contains(x.Name.ToLower())) && (!(x.First() is JArray)))
+                            if ((useAllProperties || propertyNames.Contains(x.Name.ToLower())) && (!(x.First() is JArray)))
                             {
                                 var item = x.First().ToString();
                                 if (item.IndexOf("umb://document", StringComparison.CurrentCultureIgnoreCase) >= 0)
                                 {
                                     var udi = Udi.Parse(item);
                                     var content = UmbHelper.TypedContent(udi);
-                                    if(content != null)
+                                    if (content != null)
                                     {
-                                        x.First().Replace(JToken.FromObject(Simplify(content)));
+                                        //x.First().Replace(JToken.FromObject(Simplify(content)));
+                                        newprops.Add(x.Name, JToken.FromObject(Simplify(content)));
                                     }
-                                    
-                                    //x.First().Replace(content?.Name);
+                                    else
+                                    {
+                                        newprops.Add(x.Name, x.Value);
+                                    }
+                                }
+                                else
+                                {
+                                    newprops.Add(x.Name, x.Value);
                                 }
                             }
-                            
-                            //foreach (var z in item)
-                            //{
-                            //    var s = z.Value<string>();
-
-                            //    if (s.IndexOf("umb", StringComparison.CurrentCultureIgnoreCase) >= 0)
-                            //    {
-                            //        var udi = Udi.Parse(s);
-                            //        var content = UmbHelper.TypedContent(udi);
-                            //        z.Replace(content?.Name);
-                            //    }
-                            //}
-                            
                         }
+                        val = newprops;
 
-                        val = v;
                     }
                 }
 
@@ -1260,7 +1258,7 @@ namespace uHateoas.League
                     descendants = model.Descendants(descendantsAlias);
 
                 var descendantList = SortedData(!string.IsNullOrEmpty(RequestWhere) ? descendants.Where(RequestWhere.ChangeBinary()) : descendants).ToList();
-                List<object> descendantObjectList = descendantList.Select(Simplify).Cast<object>().ToList();
+                List<object> descendantObjectList = descendantList.Select(x => Simplify(x)).Cast<object>().ToList();
 
                 entities.AddRange(descendantObjectList);
             }
@@ -1287,7 +1285,7 @@ namespace uHateoas.League
 
                 var childList = SortedData(!string.IsNullOrEmpty(RequestWhere) ? children.Where(RequestWhere.ChangeBinary()) : children).ToList();
 
-                List<object> childObjectList = childList.Select(Simplify).Cast<object>().ToList();
+                List<object> childObjectList = childList.Select(x => Simplify(x)).Cast<object>().ToList();
 
                 entities.AddRange(childObjectList);
             }
