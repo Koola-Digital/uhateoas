@@ -371,12 +371,12 @@ namespace uHateoas.League
             }
         }
 
-        private Dictionary<string, object> Simplify(IPublishedContent node, bool showClass = false)
+        private Dictionary<string, object> Simplify(IPublishedContent node, bool showClass = true)
         {
             return Simplify(node, false, new List<object>(), new List<object>(), showClass);
         }
 
-        private Dictionary<string, object> Simplify(IPublishedContent node, bool isRoot, List<object> entities, List<object> actions, bool showClass = false)
+        private Dictionary<string, object> Simplify(IPublishedContent node, bool isRoot, List<object> entities, List<object> actions, bool showClass = true)
         {
             try
             {
