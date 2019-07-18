@@ -23,6 +23,7 @@ using Umbraco.Core.Models.PublishedContent;
 using Umbraco.Core.Publishing;
 using Umbraco.Core.Security;
 using Umbraco.Core.Services;
+using umbraco.editorControls.SettingControls.Pickers;
 using Umbraco.Web;
 using Umbraco.Web.Models;
 using static System.Int32;
@@ -1186,13 +1187,14 @@ namespace uHateoas.League
                     case "createdate":
                         sortedData = data.OrderByDescending(x => x.CreateDate);
                         break;
+
                     case "sortorder":
                         sortedData = data.OrderByDescending(x => x.SortOrder);
                         break;
 
                     default:
-                        sortedData = data.OrderBy(x => x.GetProperty(RequestOrderBy).PropertyTypeAlias.IndexOf("date", StringComparison.OrdinalIgnoreCase) >= 0 ?
-                            x.GetPropertyValue<DateTime>(RequestOrderBy).ToString("yyyyMMddHHmm") : x.GetPropertyValue<string>(RequestOrderBy) ?? "");
+                        sortedData = data.OrderByDescending(x => x.GetProperty(RequestOrderByDesc).PropertyTypeAlias.IndexOf("date", StringComparison.OrdinalIgnoreCase) >= 0 ?
+                            (x.HasValue(RequestOrderByDesc) ? x.GetPropertyValue<DateTime>(RequestOrderByDesc).ToString("yyyyMMddHHmm") : DateTime.MinValue.ToString("yyyyMMddHHmm")) : x.GetPropertyValue<string>(RequestOrderByDesc) ?? "");
                         break;
                 }
             }
@@ -1218,7 +1220,7 @@ namespace uHateoas.League
 
                     default:
                         sortedData = data.OrderBy(x => x.GetProperty(RequestOrderBy).PropertyTypeAlias.IndexOf("date", StringComparison.OrdinalIgnoreCase) >= 0 ?
-                            x.GetPropertyValue<DateTime>(RequestOrderBy).ToString("yyyyMMddHHmm") : x.GetPropertyValue<string>(RequestOrderBy) ?? "");
+                            (x.HasValue(RequestOrderBy) ? x.GetPropertyValue<DateTime>(RequestOrderBy).ToString("yyyyMMddHHmm") : DateTime.MinValue.ToString("yyyyMMddHHmm")) : x.GetPropertyValue<string>(RequestOrderBy) ?? "");
                         break;
                 }
             }
